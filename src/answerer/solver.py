@@ -2,6 +2,7 @@ import math
 import re
 from collections.abc import Sequence
 from enum import Enum
+from typing import Iterable
 
 _VECTOR_PATTERN = re.compile(r"(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)")
 _HEIGHT_PATTERNS = tuple(
@@ -70,7 +71,19 @@ def _identify_topic(question: str) -> _Topic | None:
 
 def _extract_vector_parameters(question: str) -> tuple[list[int], list[int]] | None:
     """Extract two vectors from the question"""
+
+    def _deduplicate(values: Iterable[tuple[str, ...]]) -> list[tuple[str, ...]]:
+        seen = set()
+        dedup = []
+        for value in values:
+            if value not in seen:
+                seen.add(value)
+                dedup.append(value)
+        return dedup
+
     matches = _VECTOR_PATTERN.findall(question)
+    if len(matches) > 2:
+        matches = _deduplicate(matches)
 
     try:
         vec1, vec2 = matches
