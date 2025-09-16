@@ -1,5 +1,36 @@
 import math
 import re
+from collections.abc import Sequence
+
+_HEIGHT_PATTERNS = tuple(
+    re.compile(pattern=p, flags=re.IGNORECASE)
+    for p in [
+        # language=pythonregexp
+        r"\bheight[^.,\n\d]*?(\d+|single)\s*(meter)s?\b",
+        # language=pythonregexp
+        r"(\d+|single)\s*(meter)s?\s*(?:tall|in height|high)\b",
+        # language=pythonregexp
+        r"(\d+|single)-(meter)s?\s(?:tall|high)\b",
+        # language=pythonregexp
+        r"(\d+|single)(?:-|\s)(stor)(?:y|ies|eys?)\b",
+    ]
+)
+_RADIUS_PATTERNS = tuple(
+    re.compile(pattern=p, flags=re.IGNORECASE)
+    for p in [
+        # language=pythonregexp
+        r"\bradius[^.,\n\d]*?(\d+|single)\s*(meter)s?\b",
+        # language=pythonregexp
+        r"(\d+|single)-(meter)s?\sradius\b",
+    ]
+)
+_KNOWN_UNITS_TO_METERS = {
+    "meter": 1.0,
+    "stor": 1.0,  # "storey"
+}
+_KNOWN_SPECIAL_VALUES = {
+    "single": 1.0,
+}
 
 
 def solve(question: str) -> int | list[int] | None:
@@ -54,43 +85,21 @@ def _extract_vector_parameters(question: str) -> tuple[list[int], list[int]] | N
 def _extract_cylinder_parameters(question: str) -> tuple[float, float] | None:
     """Extract height and radius from cylinder question"""
 
-    def convert_special_values(value: str, unit: str) -> float:
-        if value.lower() == "single":
-            return 1.0
-        if unit.lower().startswith("stor"):
-            return float(value) if value.isdigit() else 1.0
-        return float(value)
+    def convert_to_meters(value: str, unit: str) -> float:
+        numeric_value = _KNOWN_SPECIAL_VALUES.get(value.lower(), float(value))
+        meters = _KNOWN_UNITS_TO_METERS[unit.lower()]
+        return numeric_value * meters
 
-    height = None
-    radius = None
-
-    # Height extraction patterns (case insensitive)
-    height_patterns = [
-        r"\bheight(?:[^.,\n\d]*?)(\d+|single)\s*(meter)s?\b",
-        r"(\d+|single)\s*(meter)s?\s*(?:tall|in height|high)\b",
-        r"(\d+|single)-(meter)s?\s(?:tall|high)\b",
-        r"(\d+|single)(?:-|\s)(stor)(?:y|ies|eys?)\b",
-    ]
-
-    for pattern in height_patterns:
-        match = re.search(pattern, question, re.IGNORECASE)
-        if match:
+    def extract_value(question: str, patterns: Sequence[re.Pattern]) -> str | None:
+        for pattern in patterns:
+            if not (match := pattern.search(question)):
+                continue
             value, unit = match.groups()
-            height = convert_special_values(value, unit)
-            break
+            return convert_to_meters(value, unit)
+        return None
 
-    # Radius extraction patterns (case insensitive)
-    radius_patterns = [
-        r"\bradius(?:[^.,\n\d]*?)(\d+|single)\s*(meter)s?\b",
-        r"(\d+|single)-(meter)s?\sradius\b",
-    ]
-
-    for pattern in radius_patterns:
-        match = re.search(pattern, question, re.IGNORECASE)
-        if match:
-            value, unit = match.groups()
-            radius = convert_special_values(value, unit)
-            break
+    height = extract_value(question, _HEIGHT_PATTERNS)
+    radius = extract_value(question, _RADIUS_PATTERNS)
 
     if height is not None and radius is not None:
         return height, radius
