@@ -12,7 +12,7 @@ class RedisQnaCache:
     """Redis-based question answer cache"""
 
     def __init__(self, host: str, port: int = 6379):
-        self._redis_client = StrictRedis(host=host, port=port, decode_responses=True)
+        self._redis_client = StrictRedis(host=host, port=port)
 
     async def get(self, question: str) -> str | None:
         key = self._generate_cache_key(question)
