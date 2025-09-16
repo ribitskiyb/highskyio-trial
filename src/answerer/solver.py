@@ -86,7 +86,7 @@ def _extract_cylinder_parameters(question: str) -> tuple[float, float] | None:
     """Extract height and radius from cylinder question"""
 
     def convert_to_meters(value: str, unit: str) -> float:
-        numeric_value = _KNOWN_SPECIAL_VALUES.get(value.lower(), float(value))
+        numeric_value = _KNOWN_SPECIAL_VALUES.get(value.lower()) or float(value)
         meters = _KNOWN_UNITS_TO_METERS[unit.lower()]
         return numeric_value * meters
 
