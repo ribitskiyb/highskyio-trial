@@ -1,7 +1,9 @@
 import math
 import re
 from collections.abc import Sequence
+from enum import Enum
 
+_VECTOR_PATTERN = re.compile(r"(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)")
 _HEIGHT_PATTERNS = tuple(
     re.compile(pattern=p, flags=re.IGNORECASE)
     for p in [
@@ -33,18 +35,23 @@ _KNOWN_SPECIAL_VALUES = {
 }
 
 
+class _Topic(str, Enum):
+    VECTOR_CROSS_PRODUCT = "vector_cross_product"
+    CYLINDER_SURFACE_AREA = "cylinder_surface_area"
+
+
 def solve(question: str) -> int | list[int] | None:
     """Main solving method"""
     topic = _identify_topic(question)
 
-    if topic == "vector_cross_product":
+    if topic is _Topic.VECTOR_CROSS_PRODUCT:
         vectors = _extract_vector_parameters(question)
         if vectors:
             v1, v2 = vectors
             result = _calculate_vector_cross_product(v1, v2)
             return result
 
-    elif topic == "cylinder_surface_area":
+    elif topic is _Topic.CYLINDER_SURFACE_AREA:
         params = _extract_cylinder_parameters(question)
         if params:
             height, radius = params
@@ -54,25 +61,21 @@ def solve(question: str) -> int | list[int] | None:
     return None
 
 
-def _identify_topic(question: str) -> str | None:
+def _identify_topic(question: str) -> _Topic | None:
     """Determine which topic the question is about"""
-    # Check for vector cross product first (higher priority)
-    vector_pattern = r"-?\d+\s*,\s*-?\d+\s*,\s*-?\d+"
-    if re.search(vector_pattern, question):
-        return "vector_cross_product"
+    if _VECTOR_PATTERN.search(question):
+        return _Topic.VECTOR_CROSS_PRODUCT
 
-    # Check for cylinder surface area
     question_lower = question.lower()
     if "cylind" in question_lower and "surface area" in question_lower:
-        return "cylinder_surface_area"
+        return _Topic.CYLINDER_SURFACE_AREA
 
     return None
 
 
 def _extract_vector_parameters(question: str) -> tuple[list[int], list[int]] | None:
     """Extract two vectors from the question"""
-    vector_pattern = r"(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)"
-    matches = re.findall(vector_pattern, question)
+    matches = _VECTOR_PATTERN.findall(question)
 
     if len(matches) >= 2:
         vector1 = [int(x) for x in matches[0]]
