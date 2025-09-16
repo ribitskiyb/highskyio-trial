@@ -42,23 +42,18 @@ class _Topic(str, Enum):
 
 def solve(question: str) -> int | list[int] | None:
     """Main solving method"""
-    topic = _identify_topic(question)
+    result = None
+    match _identify_topic(question):
+        case _Topic.VECTOR_CROSS_PRODUCT:
+            if vectors := _extract_vector_parameters(question):
+                result = _calculate_vector_cross_product(*vectors)
 
-    if topic is _Topic.VECTOR_CROSS_PRODUCT:
-        vectors = _extract_vector_parameters(question)
-        if vectors:
-            v1, v2 = vectors
-            result = _calculate_vector_cross_product(v1, v2)
-            return result
+        case _Topic.CYLINDER_SURFACE_AREA:
+            if params := _extract_cylinder_parameters(question):
+                height, radius = params
+                result = _calculate_cylinder_surface_area(height, radius)
 
-    elif topic is _Topic.CYLINDER_SURFACE_AREA:
-        params = _extract_cylinder_parameters(question)
-        if params:
-            height, radius = params
-            result = _calculate_cylinder_surface_area(height, radius)
-            return result
-
-    return None
+    return result
 
 
 def _identify_topic(question: str) -> _Topic | None:
