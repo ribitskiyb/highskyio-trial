@@ -1,5 +1,4 @@
 import hashlib
-from typing import cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -9,18 +8,42 @@ from starlette import status
 from answerer.solver import solve
 
 
+class RedisQnaCache:
+    """Redis-based question answer cache"""
+
+    def __init__(self, host: str, port: int = 6379):
+        self._redis_client = StrictRedis(host=host, port=port, decode_responses=True)
+
+    async def get(self, question: str) -> str | None:
+        key = self._generate_cache_key(question)
+        answer_bytes = await self._redis_client.get(key)
+        if answer_bytes:
+            return answer_bytes.decode("utf-8")
+        return None
+
+    async def set(self, question: str, answer: str, expiration_sec: int = 86_400) -> None:
+        key = self._generate_cache_key(question)
+        value = answer.encode("utf-8")
+        await self._redis_client.setex(name=key, value=value, time=expiration_sec)
+
+    async def aclose(self):
+        await self._redis_client.aclose()
+
+    @staticmethod
+    def _generate_cache_key(question: str) -> bytes:
+        return hashlib.md5(question.encode("utf-8")).digest()
+
+
 class SolverResponse(BaseModel):
     answer: str
 
 
 async def get_answer(
     question: str,
-    redis_client: StrictRedis,
+    cache: RedisQnaCache,
 ) -> SolverResponse:
-    cache_key = _generate_cache_key(question)
-
     # Check cache first
-    cached_answer = cast(bytes, await redis_client.get(cache_key)).decode("utf-8")
+    cached_answer = await cache.get(question)
     if cached_answer:
         return SolverResponse(answer=cached_answer)
 
@@ -36,14 +59,6 @@ async def get_answer(
     string_result = str(result)
 
     # Cache the result for 60 seconds
-    await redis_client.setex(
-        name=cache_key,
-        time=60,
-        value=string_result.encode("utf-8"),
-    )
+    await cache.set(question=question, answer=string_result, expiration_sec=60)
 
     return SolverResponse(answer=string_result)
-
-
-def _generate_cache_key(question: str) -> str:
-    return hashlib.md5(question.encode("utf-8")).hexdigest()
