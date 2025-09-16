@@ -77,12 +77,14 @@ def _extract_vector_parameters(question: str) -> tuple[list[int], list[int]] | N
     """Extract two vectors from the question"""
     matches = _VECTOR_PATTERN.findall(question)
 
-    if len(matches) >= 2:
-        vector1 = [int(x) for x in matches[0]]
-        vector2 = [int(x) for x in matches[1]]
-        return vector1, vector2
+    try:
+        vec1, vec2 = matches
+    except ValueError:
+        return None
 
-    return None
+    vector1 = list(map(int, vec1))
+    vector2 = list(map(int, vec2))
+    return vector1, vector2
 
 
 def _extract_cylinder_parameters(question: str) -> tuple[float, float] | None:
