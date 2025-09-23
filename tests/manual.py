@@ -37,7 +37,7 @@ def get_question_answer_pairs() -> Iterator[
         yield item_no, topic, question, answer
 
 
-def get_question_answer_test_params() -> list[pytest.param]:
+def get_question_answer_test_params() -> Iterator[pytest.param]:
     for item_no, topic, question, answer in get_question_answer_pairs():
         yield pytest.param(
             question,
